@@ -86,10 +86,7 @@ d3.json('../john_a_boehner.json', function(data){
 		.on('mouseout', function(){
 			d3.select(this.parentNode.parentNode).select('.event-date').classed('shown', false)
 		})
-		.append('text')
-		.text(function(d){
-			return d.info.title
-		})
+
 
 	event_.selectAll('text')
 		.insert("g", ":first-child")
@@ -109,6 +106,10 @@ d3.json('../john_a_boehner.json', function(data){
 		.style('fill', 'white')
 		.attr('rx', 10)
 		.attr('ry', 10)
+			.append('text')
+			.text(function(d){
+				return d.info.title
+			})
 
 	var format = d3.time.format('%B %d %Y')
 	
