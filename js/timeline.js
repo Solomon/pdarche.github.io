@@ -208,7 +208,11 @@ function showEventInfo( eventObj ){
             var template = Handlebars.compile( source )
             $('#info').html( template(eventObj) )
             break
-
+        case "joined committe":
+            var source = $('#joined_committee').html()
+            var template = Handlebars.compile( source )
+            $('#info').html( template(eventObj) )
+            break
     }
 }
 
@@ -229,7 +233,7 @@ function eventText( eventObj ){
 			text = eventObj.info.party + " " + eventObj.info.type + " from District " + eventObj.info.district + " of " + eventObj.info.state 
 			break
 		case "joined committee":
-			text = "JC"
+			text = "Joined committee"
 			break
 	}
 
