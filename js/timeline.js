@@ -88,7 +88,7 @@ d3.json('../john_a_boehner.json', function(data){
 		})
 		.append('text')
 		.text(function(d){
-			return d.eventObj.info.title
+			return d.info.title
 		})
 
 	event_.selectAll('text')
