@@ -118,19 +118,19 @@ d3.json('../john_a_boehner.json', function(data){
 		.attr("transform", "rotate(90)")
 		.attr("x", 10)
 
-	// on click show event info
-	// event_.select('.event-text').on('click', function(d){
-	// 	console.log(d)
-	// 	var rect = d3.select(this.parentNode.parentNode).select('rect')
-	// 	if ( !rect.classed('shown') ){
-	// 		showEventInfo(d)
-	// 		d3.select(this).classed('bold', true)
-	// 		rect.classed('shown', true)
-	// 	} else {
-	// 		d3.select(this).classed('bold', false)
-	// 		rect.classed('shown', false)
-	// 	}
-	// })
+	on click show event info
+	event_.select('.event-text').on('click', function(d){
+		console.log(d)
+		// var rect = d3.select(this.parentNode.parentNode).select('rect')
+		if ( !rect.classed('shown') ){
+			showEventInfo(d)
+			d3.select(this).classed('bold', true)
+			// rect.classed('shown', true)
+		} else {
+			d3.select(this).classed('bold', false)
+			// rect.classed('shown', false)
+		}
+	})
 })
 
 $(document).ready(function(){
