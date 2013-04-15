@@ -126,7 +126,7 @@ d3.json('../john_a_boehner.json', function(data){
 		console.log(d)
 		var rect = d3.select(this.parentNode.parentNode).select('rect')
 		if ( !rect.classed('shown') ){
-			// showEventInfo(d)
+			showEventInfo(d)
 			d3.select(this).classed('bold', true)
 			rect.classed('shown', true)
 		} else {
@@ -197,18 +197,18 @@ function toggleFilter(){
 function showEventInfo( eventObj ){ 
     var eventType = eventObj.event
 
-    $('#event_info').empty()
+    console.log("clicking")
 
     switch(eventType){
         case "event/party":
             var source = $('#eventOrParty').html()
             var template = Handlebars.compile( source )
-            $('#info').append( template(eventObj) )
+            $('#info').html( template(eventObj) )
             break
         case "sponsored legislation":
             var source = $('#sponsored_bill').html()
             var template = Handlebars.compile( source )
-            $('#info').append( template(eventObj) )
+            $('#info').html( template(eventObj) )
             break
 
     }
