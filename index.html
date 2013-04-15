@@ -122,6 +122,15 @@
 				display: inline-block;
 			}
 
+			#info {
+				width:400px;
+				height: 200px;
+				position: fixed;
+				right: 0px;
+				top: 80px;
+				background-color: yellow;
+			}
+
 
 		</style>
 	</head>
@@ -149,6 +158,9 @@
 			<div><input type="checkbox" name="filter-events-input" checked="true" class="filter-events-input committee"/> Committee Assignments</div>
 			<div><input type="checkbox" name="filter-events-input" checked="true" class="filter-events-input election"/> Elected to Office</div>
 		</div>
+		<div id="info">
+
+		</div>
 		<script type="text/javascript" src="js/timeline.js"></script>
 		<script id="eventOrParty" type="x-handlebars-template">
 			<div>{{event}}</div>
@@ -168,5 +180,10 @@
 				{{/each}}
 			</div>
 		</script>
+		<script id="sponsored_bill" type="x-handlebars-template">
+			<div>{{ info.titles[0] }}</div>
+		</script>
+
+
 	</body>
 </html>

@@ -205,6 +205,7 @@ function showEventInfo( eventObj ){
             var template = Handlebars.compile( source )
             $('#event_info').append( template(eventObj) )
             break
+         
     }
 }
 
