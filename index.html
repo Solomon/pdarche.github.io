@@ -130,6 +130,12 @@
 				top: 80px;
 			}
 
+			#info div{
+				font-size: 20px;
+				font-family: helvetica;
+				padding: 10px;
+			}
+
 
 		</style>
 	</head>
@@ -182,7 +188,11 @@
 		</script>
 
 		<script id="sponsored_bill" type="x-handlebars-template">
+			<h3>Title</h3>
 			<div>{{ info.title }}</div>
+			<div><a href="{{ info.link }}">Govtrack</a></div>
+			<h3>Thomas</h3>
+			<div><a href="{{ info.thomas_link }}">Thomas</a></div>
 		</script>
 
 	</body>
