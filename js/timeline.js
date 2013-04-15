@@ -96,20 +96,17 @@ d3.json('../john_a_boehner.json', function(data){
 		})
 		.attr('class', 'event-type')
 
-	event_.append('g').append('rect')
-		.attr('width', 400)
-		.attr('height', 300)
-		.attr('class', 'event-info')
-		.attr('x', -50)
-		.attr('y', -400)
-		.style('stroke', 'hsl(0, 100%, 67%)')
-		.style('fill', 'white')
-		.attr('rx', 10)
-		.attr('ry', 10)
-			.append('text')
-			.text(function(d){
-				return d.info.title
-			})
+	// event_.append('g').append('rect')
+	// 	.attr('width', 400)
+	// 	.attr('height', 300)
+	// 	.attr('class', 'event-info')
+	// 	.attr('x', -50)
+	// 	.attr('y', -400)
+	// 	.style('stroke', 'hsl(0, 100%, 67%)')
+	// 	.style('fill', 'white')
+	// 	.attr('rx', 10)
+	// 	.attr('ry', 10)
+
 
 	var format = d3.time.format('%B %d %Y')
 	
@@ -122,18 +119,18 @@ d3.json('../john_a_boehner.json', function(data){
 		.attr("x", 10)
 
 	// on click show event info
-	event_.select('.event-text').on('click', function(d){
-		console.log(d)
-		var rect = d3.select(this.parentNode.parentNode).select('rect')
-		if ( !rect.classed('shown') ){
-			showEventInfo(d)
-			d3.select(this).classed('bold', true)
-			rect.classed('shown', true)
-		} else {
-			d3.select(this).classed('bold', false)
-			rect.classed('shown', false)
-		}
-	})
+	// event_.select('.event-text').on('click', function(d){
+	// 	console.log(d)
+	// 	var rect = d3.select(this.parentNode.parentNode).select('rect')
+	// 	if ( !rect.classed('shown') ){
+	// 		showEventInfo(d)
+	// 		d3.select(this).classed('bold', true)
+	// 		rect.classed('shown', true)
+	// 	} else {
+	// 		d3.select(this).classed('bold', false)
+	// 		rect.classed('shown', false)
+	// 	}
+	// })
 })
 
 $(document).ready(function(){
