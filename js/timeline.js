@@ -85,7 +85,11 @@ d3.json('../john_a_boehner.json', function(data){
 		})
 		.on('mouseout', function(){
 			d3.select(this.parentNode.parentNode).select('.event-date').classed('shown', false)
-		});
+		})
+		.append('text')
+		.text(function(d){
+			return d.eventObj.title
+		})
 
 	event_.selectAll('text')
 		.insert("g", ":first-child")
@@ -123,11 +127,9 @@ d3.json('../john_a_boehner.json', function(data){
 		if ( !rect.classed('shown') ){
 			// showEventInfo(d)
 			d3.select(this).classed('bold', true)
-			console.log("hasn't shown", d3.select(this).classed('shown'))
 			rect.classed('shown', true)
 		} else {
 			d3.select(this).classed('bold', false)
-			console.log("has shown", d3.select(this).classed('shown'))
 			rect.classed('shown', false)
 		}
 	})
