@@ -122,13 +122,13 @@ d3.json('../john_a_boehner.json', function(data){
 	event_.select('.event-text').on('click', function(d){
 		console.log(d)
 		// var rect = d3.select(this.parentNode.parentNode).select('rect')
-		if ( !rect.classed('shown') ){
+		if ( !d3.select(this).classed('shown') ){
 			showEventInfo(d)
 			d3.select(this).classed('bold', true)
-			// rect.classed('shown', true)
+			d3.select(this).classed('shown', true)
 		} else {
 			d3.select(this).classed('bold', false)
-			// rect.classed('shown', false)
+			d3.select(this).classed('shown', false)
 		}
 	})
 })
