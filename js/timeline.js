@@ -208,7 +208,8 @@ function showEventInfo( eventObj ){
             var template = Handlebars.compile( source )
             $('#info').html( template(eventObj) )
             break
-        case "joined committe":
+        case "joined committee":
+        	console.log("showing commiteee")
             var source = $('#joined_committee').html()
             var template = Handlebars.compile( source )
             $('#info').html( template(eventObj) )
