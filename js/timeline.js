@@ -129,6 +129,7 @@ d3.json('../john_a_boehner.json', function(data){
 		} else {
 			d3.select(this).classed('bold', false)
 			d3.select(this).classed('shown', false)
+			$('#info').empty()
 		}
 	})
 })
