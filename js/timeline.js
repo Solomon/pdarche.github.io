@@ -203,9 +203,14 @@ function showEventInfo( eventObj ){
         case "event/party":
             var source = $('#eventOrParty').html()
             var template = Handlebars.compile( source )
-            $('#event_info').append( template(eventObj) )
+            $('#info').append( template(eventObj) )
             break
-         
+        case "sponsored legislation":
+            var source = $('#sponsored_bill').html()
+            var template = Handlebars.compile( source )
+            $('#info').append( template(eventObj) )
+            break
+
     }
 }
 
