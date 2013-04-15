@@ -118,7 +118,7 @@ d3.json('../john_a_boehner.json', function(data){
 		.attr("transform", "rotate(90)")
 		.attr("x", 10)
 
-	on click show event info
+	// on click show event info
 	event_.select('.event-text').on('click', function(d){
 		console.log(d)
 		// var rect = d3.select(this.parentNode.parentNode).select('rect')
