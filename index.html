@@ -2,7 +2,8 @@
 <html>
 	<head>
 		<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
-		<script type="text/javascript" src="js/d3.v2.min.js"></script>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+		<script src="js/d3.v2.min.js"></script>
 		<script type="text/javascript" src="js/handlebars.js"></script>
 		<style>
 
@@ -122,29 +123,10 @@
 				display: inline-block;
 			}
 
-			#info {
-				width:600px;
-				height: 200px;
-				position: fixed;
-				right: 0px;
-				top: 80px;
-			}
-
-			#info div{
-				font-size: 20px;
-				font-family: helvetica;
-				padding: 10px;
-				display: inline-block;
-			}
-
-			#info h3 {
-				font-family: helvetica;
-				padding: 5px 0px 0px 10px;
-				margin: 0px;
-			}
-
-			#info a {
-				display: inline-block;
+			.brush .extent {
+			  stroke: #fff;
+			  fill-opacity: .125;
+			  shape-rendering: crispEdges;
 			}
 
 
@@ -174,11 +156,7 @@
 			<div><input type="checkbox" name="filter-events-input" checked="true" class="filter-events-input committee"/> Committee Assignments</div>
 			<div><input type="checkbox" name="filter-events-input" checked="true" class="filter-events-input election"/> Elected to Office</div>
 		</div>
-		<div id="info">
-
-		</div>
 		<script type="text/javascript" src="js/timeline.js"></script>
-		
 		<script id="eventOrParty" type="x-handlebars-template">
 			<div>{{event}}</div>
 			<div>beneficiaries: 
@@ -197,20 +175,5 @@
 				{{/each}}
 			</div>
 		</script>
-
-		<script id="sponsored_bill" type="x-handlebars-template">
-			<h3>Title</h3>
-			<div>{{ info.title }}</div>
-			<div><a href="{{ info.link }}" target="_blank">Govtrack</a></div>
-			<div><a href="{{ info.thomas_link }}" target="_blank">Thomas</a></div>
-		</script>
-
-<script id="joined_committee" type="x-handlebars-template">
-<h3>Committee Assignment</h3>
-{{#each info }}
-<div>{{ this.[14] }}</div>
-{{/each}}
-</script>
-
 	</body>
 </html>
