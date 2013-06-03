@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+		<script src="js/d3.v2.min.js"></script>
+		<script src="js/underscore.js"></script>
+		<script src="js/backbone.js"></script>
+		<script type="text/javascript" src="js/handlebars.js"></script>
+		<link rel="stylesheet" type="text/css" href="style.css" />
+
+	</head>
+	<body>
+		<div id="vis_container"></div>
+		<script type="text/javascript" src="js/timeline.js"></script>
+		<script id="legislator" type="x-handlebars-template">
+			<div id="top_bar"></div>
+			<div id="info">
+				<div id="bio">
+				<div id="legislator_image">
+					<img src="http://assets.opensecrets.org/politicians/img/{{osid}}.jpg" />
+				</div>
+					<div><span>{{type}}</span><span> {{name}}</span></div>
+					<div><span>{{party}} - {{state}}{{district}}</span></div>
+				</div>
+			<!--	<div id="key">
+					{{#each eventTypes }}
+						<div>
+							<input type="checkbox" class="filter-input" /> {{ this }}
+						</div>
+					{{/each }}
+				</div> -->
+			</div>
+		</script>
+
+		<script id="eventOrParty" type="x-handlebars-template">
+			<div>{{event}}</div>
+			<div>beneficiaries: 
+				{{#each info.beneficiaries}}
+					{{this.name}}
+				{{/each}}
+			</div>
+			<div>
+				contribution info:
+				{{info.contributions_info}}
+			</div>
+			<div>
+				hosts:
+				{{#each info.hosts}}
+					{{this.name}}
+				{{/each}}
+			</div>
+		</script>
+
+		<script id="sponsored_legislation" type="x-handlebars-template">
+			<div class="event-popup" id="{{id}}">								
+				<h3>Sponsored Legislation</h3>
+				<div>
+					<h5>title</h5> 
+					<p>{{title}}</p>
+					<a href="{{thomas_link}}" target="_blank">Thomas</a>
+					<a href="{{govtrack_link}}" target="_blank">Govtrack</a>
+				</div>
+			</div>
+		</script>
+
+		<script id="cosponsored_legislation" type="x-handlebars-template">
+			<div class="event-popup" id="{{id}}">				
+				<h3>Cosponsored Legislation</h3>
+				<div>
+					<h5>title</h5> 
+					<p>{{title}}</p>
+					<a href="{{thomas_link}}" target="_blank">Thomas</a>
+					<a href="{{govtrack_link}}" target="_blank">Govtrack</a>
+				</div>
+			</div>
+		</script>
+
+		<script id="joined_committee" type="x-handlebars-template">
+			<div class="event-popup" id="{{id}}">
+				<h5>{{date}}</h5>
+				<h3>Joined Committee</h3>
+				<div>
+					<h5>committee/position</h5>
+					<p>{{committee}}</p>
+				</div>
+			</div>
+		</script>
+
+		<!-- <script id="joined_committee" type="x-handlebars-template">
+			<div class="event-popup" id="{{id}}">
+				<p>Joined the {{committee}} Committee</p>
+			</div>
+		</script> -->
+
+		<!--<script id="campaign_contribution" type="x-handlebars-template">
+			<div class="event-popup" id="{{id}}">
+				<h5>{{date}}</h5>
+				<h3>Recieved Campaign Contribution</h3>
+				<div>
+					<h5>donor</h5> 
+					<a href="#" class="contributor-name {{contributor_string}}">{{contributor_name}}</a>
+				</div>
+				 <p>contriutor occupation {{contributor_occupation}}</p>
+				<div>
+					<h5>amount</h5>
+					<p>${{amount}}</p>
+				</div>
+				<div class="hidden-content">
+					<h5>cycle</h5>
+					<p>{{cycle}}</p>
+				</div>
+				<div class="hidden-content contributor-location">
+					{{contributor_city}}, {{contributor_state}} {{contributor_zipcode}} 
+				</div>
+			</div>
+		</script>-->
+
+		<script id="campaign_contribution" type="x-handlebars-template">
+			<div class="event-popup" id="{{id}}">
+				<h5>{{date}}</h5>
+				<h3>Recieved Campaign Contribution</h3>
+				<div id="popup_content_container">
+					<div>
+						<h5>donor</h5> 
+						<a href="#" class="contributor-name {{contributor_string}}">{{contributor_name}}</a>
+					</div>
+					<div>
+						<h5>amount</h5>
+						<p>${{amount}}</p>
+					</div>
+				</div>
+			</div>
+		</script>
+
+		<script id="campaign_contribution_details" type="x-handlebars-template">
+			<div>
+				<h5>donor</h5> 
+				<a href="#" class="contributor-name {{contributor_string}}">{{contributor_name}}</a>
+			</div>		
+			<div>
+				<h5>amount</h5>
+				<p>${{amount}}</p>
+			</div>
+			<div>
+				<h5>type</h5> 
+				<p>{{contributor_type}}</p>
+			</div>
+			<div>
+				<h5>cycle</h5> 
+				<p>{{cycle}}</p>
+			</div>
+		</script>
+
+	</body>
+</html>
