@@ -1,28 +1,42 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
-		<script src="http://d3js.org/d3.v3.min.js"></script>
-		<script src="js/d3.v2.min.js"></script>
-		<script src="js/underscore.js"></script>
-		<script src="js/backbone.js"></script>
-		<script type="text/javascript" src="js/handlebars.js"></script>
-		<link rel="stylesheet" type="text/css" href="style.css" />
+		<script type="text/javascript" src="js/vendor/jquery.js"></script>
+		<script type="text/javascript" src="js/vendor/d3.v2.min.js"></script>
+		<script type="text/javascript" src="js/vendor/underscore.js"></script>
+		<script type="text/javascript" src="js/vendor/backbone.js"></script>
+		<script type="text/javascript" src="js/vendor/jquery-ui.js"></script>
+		<script type="text/javascript" src="js/vendor/handlebars.js"></script>
+		<script type="text/javascript" src="data/dataObjects.js"></script>
+		<script type="text/javascript" src="js/views/views.js"></script>
+		<script type="text/javascript" src="js/app.js"></script>
+		<link rel="stylesheet" type="text/css" href="css/style.css" />
+		<link rel="stylesheet" type="text/css" href="css/jquery-ui.css" />
 
 	</head>
 	<body>
+		<div id="top_bar"></div>
 		<div id="vis_container"></div>
 		<script type="text/javascript" src="js/timeline.js"></script>
-		<script id="legislator" type="x-handlebars-template">
-			<div id="top_bar"></div>
+		
+		<script id="filter" type="x-handlebars-template">
 			<div id="options_list">
-				<!-- <li id="key_li"><img id="key_img" src="key.svg"/></li> -->
-				<img id="filter_img" src="filter.svg"/>
+				<img id="filter_img" src="img/filter.svg"/>
 				<div id="options_content"></div>	
 			</div>
+		</script>
 
-			<div id="info">
-				<div id="bio">
+		<script id="legislator" type="x-handlebars-template">
+			<hgroup id="hgroup">
+				<h1 id="title">BEST FRIENDS</h1>
+				<h2>A project to understand the friendships of industries and legislators</h2>
+			</hgroup>
+			<input id="legislator_input" type="text" placeholder="select a legislator">
+			<div id="info"></div>
+		</script>
+
+		<script id="legis_info" type="x-handlebars-template">
+			<div id="bio">
 				<div id="legislator_image">
 					<img src="http://assets.opensecrets.org/politicians/img/{{osid}}.jpg" />
 				</div>
@@ -30,15 +44,8 @@
 					<span id="role">{{type}}</span> <span>{{name}}</span>
 					<span>[{{state}}{{district}}]</span>
 				</div>
-				
-				<!--<div id="key">
-					{{#each eventTypes }}
-						<div>
-							<input type="checkbox" class="filter-input" /> {{ this }}
-						</div>
-					{{/each }}
-				</div> -->
 			</div>
+			<a id="change_legislator" href="#">change legislator</a>
 		</script>
 
 		<script id="eventOrParty" type="x-handlebars-template">
@@ -84,6 +91,22 @@
 			</div>
 		</script>
 
+		<script id="speech" type="x-handlebars-template">
+			<div class="event-popup" id="{{id}}">				
+				<h3>Speech</h3>
+				<div>
+					<h5>title</h5> 
+					<p>{{title}}</p>
+					<h5>date</h5>
+					<p>{{date}}</p>
+					<h5>bills</h5>
+					{{#each bills}}
+						<p>{{this}}</p>
+					{{/each}}
+				</div>
+			</div>
+		</script>		
+
 		<script id="joined_committee" type="x-handlebars-template">
 			<div class="event-popup" id="{{id}}">
 				<h5>{{date}}</h5>
@@ -108,12 +131,6 @@
 			</select>
 			<button id="filter_button">Filter Events</button>
 		</script>
-
-		<!-- <script id="joined_committee" type="x-handlebars-template">
-			<div class="event-popup" id="{{id}}">
-				<p>Joined the {{committee}} Committee</p>
-			</div>
-		</script> -->
 
 		<script id="campaign_contribution" type="x-handlebars-template">
 			<div class="event-popup" id="{{id}}">
