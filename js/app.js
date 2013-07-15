@@ -1,98 +1,56 @@
 $(document).ready(function(){
-
-	var head = new Heading()
+	
+	window.removePopup = true;
+	window.hoverable = true;
+	window.mousePos = undefined;
+	window.filterActive = false;
+	window.filterModel = new FilterModel();
+	
+	var headingModel = new HeadingModel()
 		, headingView = new HeadingView({
 			el : '#top_bar',
-			model : head
+			model : headingModel
 		})
-		, filter = new FilterView({
-			el : '#options_list'
-		})
-
-	window.removePopup = true
-	window.hoverable = true
-	window.mousePos = undefined
-
-	$('body').on('click', '#filter_img', function(){
-		
-		var filter = $(this).parent();
-
-		if ( filter.hasClass('expanded-filter') ){
-			filter.removeClass('expanded-filter');
-			$('#options_content').empty();
-		} else {
-			filter.addClass('expanded-filter');
-			options.filter_li();
-		}
-	
-	})
-
-	$('#filter').click(function(){
-		
-		toggleFilter();
-
-	})
+		, filterView = new FilterView({
+			el : '#filter_container',
+			model : filterModel
+		});
 
 	$(document).mousemove(function(e){
-
       mousePos = [e.pageX, e.pageY]
-
    	});
 
+	// remove filter on body click
 	$('body').on('click', 'svg', function(ev){
-		
-		if ( !($(ev.target).is('circle')) ){
-			
-			hoverable = !hoverable;
-			removePopup = !removePopup;
-
-			$('.event-popup').remove();
-
-			d3.select('.selected')
-				.classed('selected', false);
-
-			d3.selectAll('.not-connected')
-				.classed('not-connected', false);
-
-			d3.selectAll('.connected')
-				.classed('connected', false);
-
-			filterActive = false;
-
-		}
-
+		var isEvent = d3.select(ev.target).classed('event')
+		if ( filterActive && !(isEvent) ) removeFilter()
 	});
 
-	$('body').on('click', '.contributor-name', function(ev){		
-		
-		ev.preventDefault();
-		var targetName = $(ev.target).attr('class').split(" ")[1];
+	// $('body').on('click', '.contributor-name', function(ev){		
+	// 	ev.preventDefault();
+	// 	var targetName = $(ev.target).attr('class').split(" ")[1];
 
-		// REFACTOR
-		d3.selectAll('.context-container .recieved')[0].forEach(function(circle, i){		
+	// 	// REFACTOR
+	// 	d3.selectAll('.context-container .recieved')[0].forEach(function(circle, i){		
 
-			var data = d3.select(circle)[0][0].__data__,
-				stripped = data.info.contributor_name.replace(/ /g, ""),
-				el = d3.select(circle)
+	// 		var data = d3.select(circle)[0][0].__data__,
+	// 			stripped = data.info.contributor_name.replace(/ /g, ""),
+	// 			el = d3.select(circle)
 
-			if ( stripped !== targetName ){
-				el.classed('not-connected', true)
-			} else {
-				console.log("the stripped name is", stripped)
-				console.log("the target name is", targetName)
-				el.classed('connected', true)
-				el.attr('r', function(){
-					return d3.select(this).attr('r') * 5
-				})
-				console.log(data)
-			}
+	// 		if ( stripped !== targetName ){
+	// 			el.classed('not-connected', true)
+	// 		} else {
+	// 			console.log("the stripped name is", stripped)
+	// 			console.log("the target name is", targetName)
+	// 			el.classed('connected', true)
+	// 			el.attr('r', function(){
+	// 				return d3.select(this).attr('r') * 5
+	// 			})
+	// 			console.log(data)
+	// 		}
 
-		})
-	})
-
-	$('body').on('click', '#key_li, #filter_li', function(){
-		toggleOption($(this))
-	})
+	// 	})
+	// })
 
 	$('body').on('change', '#event_type_filter_drop', function(){
 
@@ -146,8 +104,6 @@ $(document).ready(function(){
 		window.filterSelector = eventToSelectorMapping[attribute]
 
 		d3.selectAll(filterSelector)[0].forEach(function(element, i){
-		
-			console.log("the element is", d3.select(element).data()[0] )
 
 			var data = d3.select(element)[0][0].__data__,
 				amount = Number(data.info.amount),

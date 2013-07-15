@@ -1,12 +1,14 @@
+	var values
 
 	// SETUP
 	var margin = {top: 10, right: 10, bottom: 100, left: 40},
-	    margin2 = {top: 630, right: 10, bottom: 20, left: 40},
+	    margin2 = {top: 610, right: 10, bottom: 20, left: 40},
 	    width = 1400 - margin.left - margin.right,
 	    height = 700 - margin.top - margin.bottom,
 	    height2 = 700 - margin2.top - margin2.bottom;
 
-	var format = d3.time.format('%B %d %Y')
+	var format = d3.time.format('%B %d %Y')	
+		, formatEventDate = d3.time.format("%b %d, %Y");
 
 	var x = d3.time.scale().range([0, width]),
 	    x2 = d3.time.scale().range([0, width]),
@@ -74,22 +76,6 @@
 				 						 sponsored.classed('shown', true).classed('hidden', false)
 		})
 
-	var values
-
-var Heading = Backbone.Model.extend({
-	
-	defaults : {
-		"name" : undefined
-	},
-
-	initialize: function(){
-
-		this.on('change', function(){
-			console.log('SOME SHIT CHANGED', this.toJSON())
-		})
-	}
-
-})
 
 function update( legisJson, view, funcName, headingModel ){
 
@@ -101,7 +87,27 @@ function update( legisJson, view, funcName, headingModel ){
 		window.committeeAssignments = _.filter(data.data, function(datum){ return datum.events[0].event_type === "joined_committee" })
 			   committeeAssignments = _.map(committeeAssignments, function(ev){ return ev.events[0] })
 
-		var legis_data = { 
+		var crpCodes = legislatorData.crp_catcodes
+			, catInfo = { "crpInfo" : [] }
+			, sectors;
+		
+		for ( key in crpCodes ) {
+			catInfo.crpInfo.push({
+				"industryCode" : key,
+				"industryName" : crpCodes[key][0],
+				"sectorCode" : key.slice(0,2),
+				"sectorCoding" : crpCodes[key][2],
+				"sectorName" : crpCodes[key][1]
+			})
+		}
+
+		sectors = _.uniq(_.pluck(catInfo.crpInfo, "sectorName"))
+		sectors = _.map(sectors, function(sector){ 
+			return _.findWhere(catInfo.crpInfo, {sectorName: sector});
+		})
+		catInfo.crpInfo = sectors.sort(compare)
+
+		var legis_data = {
 			"name" : data.bio.name.official_full,
 			"osid" : data.bio.id.opensecrets,
 			"type" : capitaliseFirstLetter( data.bio.terms[data.bio.terms.length-1].type ),
@@ -114,7 +120,9 @@ function update( legisJson, view, funcName, headingModel ){
 			]
 		}
 
+		// set the data in the models
 		headingModel.set(legis_data)
+		filterModel.set(catInfo)
 		view[funcName]()
 
 		// sort the objects by timestamp
@@ -157,12 +165,12 @@ function update( legisJson, view, funcName, headingModel ){
 		  	.attr('class', 'event')	
 		  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",75)"; })
 
-		// addContextContribution( values )
+		addContextContribution( values )
 		addContextBills( values )
 		addContextCosponsored( values )
 		addContextSpeeches( values )
+		addContextVotes( values )
 		addContextCommittee()
-		
 
 	})
 
@@ -208,6 +216,21 @@ function compare( a, b ) {
 	return 0;
 }
 
+function removeFilter() {
+
+	d3.select('.selected')
+		.classed('selected', false);
+
+	d3.selectAll('.not-connected')
+		.classed('not-connected', false);
+
+	d3.selectAll('.connected')
+		.classed('connected', false);
+
+	filterActive = false;
+	
+}
+
 function brushed() {
 
 	d3.selectAll('.event').remove()
@@ -228,29 +251,49 @@ function brushed() {
 	addContributions( data )
 	addCosponsored( data )
 	addSpeeches( data )
+	addVotes( data )
 	addCommittees()
 	focus.select(".x.axis").call(xAxis);
 
 	if ( filterActive ){
 
-		d3.selectAll(filterSelector)[0].forEach(function(element, i){
+		var attrVal = $('#industry_drop option:selected').val()
 		
-			var data = d3.select(element)[0][0].__data__,
-				amount = Number(data.info.amount),
-				el = d3.select(element)
+		d3.selectAll('.event, .context-event')[0].forEach(function(element, i){ 
+			var el = d3.select(element)
+				, data = el.data()[0];
 
-			if ( data.info.hasOwnProperty(attr) ){
-				if (data.info[attr] === attrVal ){
-					el.classed('connected', true)
-				} else {
-					el.classed('not-connected', true)	
+			if (data.hasOwnProperty('info')){
+				if ( data.info.hasOwnProperty('contributor_category') && 
+					 data.info.contributor_category !== undefined ){
+					if ( data.info["contributor_category"].slice(0,2) === attrVal ){
+						console.log("got something connected", el)
+						el.classed('connected', true)						
+					} else {
+						el.classed('not-connected', true)
+					}
 				}
-			} else {
-				el.classed('not-connected', true)
+				else if ( data.info.hasOwnProperty('crp_catcode') && 
+					 data.info.crp_catcode !== undefined ){
+					if ( data.info["crp_catcode"].slice(0,2) === attrVal ){
+						console.log("got something connected", el)
+						el.classed('connected', true)
+
+					} else {
+						el.classed('not-connected', true)
+					}
+				}
+				else {
+					el.classed('not-connected', true)
+				} 
 			}
+			else {
 
+				el.classed('not-connected', true)
+
+			}
 		})
-
+		context.selectAll('.context-connected').select('circle').classed('not-connected', false)
 	}
 
 
@@ -271,8 +314,8 @@ function addContributions( data ){
 	var event_ = focus.selectAll(".contrib")
 		.data(data)
 	  .enter().append('svg:g')
-	  	.attr('class', 'event')	
-	  	.attr("transform", function(d) { return "translate(" + ( x(d.time * 1000) - 100 ) + "," + 330 + ")"; })
+	  	// .attr('class', 'event')
+	  	.attr("transform", function(d) { return "translate(" + ( x(d.time * 1000) - 100 ) + ",350)"; })
 
 	var node = event_.selectAll(".node")
 		  .data(pack.nodes)
@@ -289,35 +332,29 @@ function addContributions( data ){
       })
       .style("stroke", "green")
 		.on('mouseover', function(d){
-			
+			console.log(d)
 			var el = d3.select(this),
 				templateData = templateId(d),
 				eventId = '#' + d.event_id,
 				templateSelector = '#' + templateData[0],
 				top = $(this).position().top - 50,
-				left = $(this).position().left >= 800 ? $(this).position().left - 400 : 
-														$(this).position().left + 50
+				left = $(this).position().left >= 800 ? $(this).position().left - 400 - (d.r/2) : 
+														$(this).position().left + 50 + (d.r/2)
 
-			if ( hoverable ){
+			el.classed(d.event_id, true)
+			  .classed('hovered', true)
+			
+			$('.event-popup').remove()
 
-				el.classed(d.event_id, true)
-				  .classed('hovered', true)
-				
-				$('.event-popup').remove()
-
-				var popup = new PopupView({
-					el : $('body'),
-					model : templateData[1],
-					tmpl : $(templateSelector),
-					top : top,
-					left : left
-				})
-				
-			}
-
+			var popup = new PopupView({
+				el : $('body'),
+				model : templateData[1],
+				tmpl : $(templateSelector),
+				top : top,
+				left : left
+			})
 		})
 		.on('mouseout', function(){
-
 			removePopup ? $('.event-popup').remove() : null
 			
 			d3.select(this.parentNode.parentNode)
@@ -335,22 +372,25 @@ function addContributions( data ){
 			// }
 
 		})
-		.on('click', function(d){
+		.on('click', function(d){			
+			var contribInfo = contributionInfo( d )
 			
-			d3.select(this).classed('selected', true)
+			d3.select(this).classed('selected', true);
+			removePopup = false;
 
-			hoverable = false
-			removePopup = false
+			$('.event-popup').addClass('expanded');
+			$('.hidden-content').removeClass('hidden-content');
 
-			$('.event-popup').addClass('expanded')
-			$('.hidden-content').removeClass('hidden-content')
+			d.info.searchString = searchString( d )
+			d.info.imageString = imageString( d )
+			d.info.totalContributed = contribInfo['totalContributed']
+			d.info.totalContributions = contribInfo['totalContributions']
 
 			var expanded = new ExpandedView({
 				el : '#popup_content_container',
 				model : d
-			})
-		})
-
+			});
+		});
 }
 
 function addContextContribution( data ){
@@ -369,7 +409,7 @@ function addContextContribution( data ){
 		.data(data)
 	  .enter().append('svg:g')
 	  	.attr('class', 'context-contrib')	
-	  	.attr("transform", function(d) { return "translate(" + ( x(d.time * 1000) - 5 ) + ",35)"; })
+	  	.attr("transform", function(d) { return "translate(" + ( x(d.time * 1000) - 5 ) + ",60)"; })
 
 	var node = event_.selectAll(".node")
 		  .data(pack.nodes)
@@ -385,40 +425,36 @@ function addContextContribution( data ){
       		return class_
       })
       .style("stroke", "green")
+
+      // hide everything but montsh
+      context.selectAll('.recieved').style('display', 'none');
 }
 
 function addBills( data ){
 
-	data = _.filter(data, function(datum){ return datum.events[0].event_type === "sponsored_legislation" })
+	data = _.filter(data, function(datum){ 
+		return datum.events[0].event_type === "sponsored_legislation" 
+	})
 	data = _.map(data, function(ev){return ev.events[0]})	
 
 	var event_ = focus.selectAll(".sponsored")
 		.data(data)
 	  .enter().append('svg:g')
 	  	.attr('class', 'event shown')
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",90)"; })
+	  	.attr("transform", function(d) {
+	  		return "translate(" + x(d.time * 1000) + ",90)"; 
+	  	})
 
-	 event_.append('rect')
+	event_.append('rect')
 		.attr("width", 40)
 		.attr("height", 15)
-		.attr("class", "sponsored")
-		.style("fill", "steelblue")
-		.style("fill-opacity", .5)
-		.style("stroke", "steelblue")
+		.attr("class", "event sponsored")
 		.attr("transform", function(d) {
 	         return "rotate(-135)" 
 	     })
 
-	event_.append('svg:line')
-		.attr('x1', 0)
-		.attr('x2', 0)
-		.attr('y1', 0)
-		.attr('y2', 400 )
-		.style("stroke-opacity", 0)
-		.style("stroke-width", 1)
-		.style("stroke", "steelblue")
-
 	event_.on('mouseover', function(d){
+		console.log(d)
 
 		var el = d3.select(this),
 			templateData = templateId(d),
@@ -426,81 +462,72 @@ function addBills( data ){
 			templateSelector = '#' + templateData[0],
 			top = $(this).position().top - 50,
 			left = $(this).position().left >= 800 ? $(this).position().left - 400 : 
-													$(this).position().left + 100			
+													$(this).position().left + 50;
 
-		if ( hoverable && !(filterActive)){
+		el.append('svg:line')
+			.attr('x1', 0)
+			.attr('x2', 0)
+			.attr('y1', 0)
+			.attr('y2', height - 140 )
+			.style("stroke-opacity", 0)
+			.style("stroke", "steelblue")
 
-			el.select('line').transition().style("stroke-opacity", 1)
-			el.select('rect').transition().style("fill-opacity", 1)
-			el.select('rect').transition().style("stroke-width", 3)
-
-			el.classed(d.event_id, true)
-			  .classed('hovered', true)
-			
-			$('.event-popup').remove()
-
-			var popup = new PopupView({
-				el : $('body'),
-				model : templateData[1],
-				tmpl : $(templateSelector),
-				top : top,
-				left : left
+		el.append('svg:text')
+			.text(function(d){
+				return formatEventDate(new Date(Number(d.time) * 1000))
 			})
-			
-		}
+			.attr('x', function(d){
+				return -this.getComputedTextLength()/2
+			})
+			.attr('y', height - 115)
+			.attr('class', 'event-date')
+			.style('font-family', 'helvetica')
+			.style('font-size', '12px')
+			.style('fill', 'steelblue')
+			.style('fill-opacity', 1)
+
+		el.select('line').transition().style("stroke-opacity", 1);
+		el.select('rect').classed('hovering', true);
+
+		el.classed(d.event_id, true)
+		  .classed('hovered', true)
+		
+		$('.event-popup').remove()
+
+		var popup = new PopupView({
+			el : $('body'),
+			model : templateData[1],
+			tmpl : $(templateSelector),
+			top : top,
+			left : left
+		})
 
 	}).on('mouseout', function(d){
 		
-		var g = d3.select(this)
+		var el = d3.select(this)
 
-		g.select('line').transition().style("stroke-opacity", 0)
-		g.select('rect').transition().style("stroke-width", 1)
-		g.classed('hovered', false)
+		el.selectAll('line').transition().style("stroke-opacity", 0).remove()
+		el.selectAll('.event-date').transition().style("stroke-opacity", 0).remove()
+		el.select('rect').classed('hovering', false)
+		el.classed('hovered', false)
 		removePopup ? $('.event-popup').remove() : null
 
 	}).on('click', function(d){
 	
-		d3.select(this).classed('selected', true)
-		
-		hoverable = false
-		removePopup = false
+		d3.select(this).classed('selected', true);
+		removePopup = false;
 
-		$('.event-popup').addClass('expanded')
-		$('.hidden-content').removeClass('hidden-content')
+		$('.event-popup').addClass('expanded');
+		$('.hidden-content').removeClass('hidden-content');
 
 		var expanded = new ExpandedView({
 			el : '#popup_content_container',
 			model : d
-		})
+		});
+	
 	})
 }
 
-function addContextBills( data ){
-
-	data = _.filter(data, function(datum){ return datum.events[0].event_type === "sponsored_legislation" })
-	data = _.map(data, function(ev){return ev.events[0]})	
-
-	var event_ = context.selectAll(".context-sponsored")
-		.data(data)
-	  .enter().append('svg:g')
-	  	.attr('class', 'context-event shown')
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",-15)"; })
-
-	 event_.append('rect')
-		.attr("width", 8)
-		.attr("height", 2)
-		.attr("class", "context-sponsored")
-		.style("fill", "steelblue")
-		.style("fill-opacity", .5)
-		.style("stroke", "steelblue")
-		.attr("transform", function(d) {
-	         return "rotate(-135)" 
-	     })
-		.on('mouseover', function(d){
-			console.log("the d is d", d)
-		})
-
-} 
 
 function addCosponsored( data ) {
 
@@ -510,46 +537,53 @@ function addCosponsored( data ) {
 	var event_ = focus.selectAll(".cosponsored")
 		.data(data)
 	  .enter().append('svg:g')
-	  	.attr('class', 'event cosponsored')	
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",150)"; })
+	  	.attr('class', 'event cosponsored')
+	  	.attr("transform", function(d) { 
+	  		return "translate(" + x(d.time * 1000) + ",150)"; 
+	  	})
 
 	 event_.append('rect')
 		.attr("width", 40)
 		.attr("height", 15)
-		.attr("class", "cosponsored")
-		.style("fill", "red")
-		.style("fill-opacity", .5)
-		.style("stroke", "red")
+		.attr("class", "event cosponsored")
 		.attr("transform", function(d) {
 	         return "rotate(-135)" 
 	     })
 
-	event_.append('svg:line')
-		.attr('x1', 0)
-		.attr('x2', 0)
-		.attr('y1', 0)
-		.attr('y2', 300)
-		.style("stroke-opacity", 0)
-		.style("stroke-width", 1)
-		.style("stroke", "red")
-
 	event_.on('mouseover', function(d){
-
+		console.log(d);
 		var el = d3.select(this)
 			, templateData = templateId(d)
 			, eventId = '#' + d.event_id
 			, templateSelector = '#' + templateData[0]
 			, top = $(this).position().top - 50
 			, left = $(this).position().left >= 800 ? $(this).position().left - 400 : 
-													$(this).position().left + 100;	
+													$(this).position().left + 50;
 
-		if ( hoverable && !(filterActive) ){
+			el.append('svg:line')
+				.attr('x1', 0)
+				.attr('x2', 0)
+				.attr('y1', 0)
+				.attr('y2', height - 200)
+				.style("stroke-opacity", 0)
+				.style("stroke", "red")
 
-			console.log("filteractive is", filterActive)
+			el.append('svg:text')
+				.text(function(d){
+					return formatEventDate(new Date(Number(d.time) * 1000))
+				})
+				.attr('x', function(d){
+					return -this.getComputedTextLength()/2
+				})
+				.attr('y', height - 175)
+				.attr('class', 'event-date')
+				.style('font-family', 'helvetica')
+				.style('font-size', '12px')
+				.style('fill', 'red')
+				.style('fill-opacity', 1)
 
 			el.select('line').transition().style("stroke-opacity", 1)
-			el.select('rect').transition().style("fill-opacity", 1)
-			el.select('rect').transition().style("stroke-width", 3)
+			el.select('rect').classed('hovering', true);
 
 			el.classed(d.event_id, true)
 			  .classed('hovered', true)
@@ -563,27 +597,20 @@ function addCosponsored( data ) {
 				top : top,
 				left : left
 			})
-			
-		} else {
-
-			console.log("filteractive is", filterActive)
-
-		}
 
 	}).on('mouseout', function(d){
 		
-		var g = d3.select(this)
+		var el = d3.select(this)
 
-		g.select('line').transition().style("stroke-opacity", 0)
-		g.select('rect').transition().style("stroke-width", 1)
-		g.classed('hovered', false)
+		el.selectAll('line').transition().style("stroke-opacity", 0).remove()
+		el.selectAll('.event-date').transition().style("stroke-opacity", 0).remove()
+		el.select('rect').classed('hovering', false);
+		el.classed('hovered', false)
 		removePopup ? $('.event-popup').remove() : null
 
 	}).on('click', function(d){
 	
 		d3.select(this).classed('selected', true)
-		
-		hoverable = false
 		removePopup = false
 
 		$('.event-popup').addClass('expanded')
@@ -595,160 +622,219 @@ function addCosponsored( data ) {
 		})
 	})
 
-	// event_.on('mouseover', function(d){
-
-	// 	var el = d3.select(this)
-
-	// 	el.select('line').transition().style("stroke-opacity", 1)
-	// 	el.select('rect').transition().style("fill-opacity", 1)
-	// 	el.select('rect').transition().style("stroke-width", 3)			
-
-	// }).on('mouseout', function(d){
-	// 	var g = d3.select(this)
-	// 	g.select('line').transition().style("stroke-opacity", 0)
-	// 	g.select('rect').transition().style("stroke-width", 1)
-
-	// })
-
 }
 
 function addSpeeches( data ){
 
-	console.log("speech data is", data)
-
 	data = _.filter(data, function(datum){ return datum.events[0].event_type === "speech" })
 	data = _.map(data, function(ev){return ev.events[0]})
 
+	var parse = d3.time.format("%Y-%m-%d").parse
+		, format = d3.time.format("%b %d, %Y");
+	
 	var event_ = focus.selectAll(".speech")
 		.data(data)
 	  .enter().append('svg:g')
 	  	.attr('class', 'event speech')	
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",210)"; })	
+	  	.attr("transform", function(d) { 
+	  		return "translate(" + x(d.time * 1000) + ",210)"; 
+	  	})	
 
 	 event_.append('rect')
 		.attr("width", 40)
 		.attr("height", 15)
-		.attr("class", "speech")
-		.style("fill", "orange")
-		.style("fill-opacity", .5)
-		.style("stroke", "orange")
+		.attr("class", "event speech")
 		.attr("transform", function(d) {
 	         return "rotate(-135)" 
-	     })
-
-	event_.append('svg:line')
-		.attr('x1', 0)
-		.attr('x2', 0)
-		.attr('y1', 0)
-		.attr('y2', 300)
-		.style("stroke-opacity", 0)
-		.style("stroke-width", 1)
-		.style("stroke", "orange")		
+	    })
 
 	event_.on('mouseover', function(d){
 
-			var el = d3.select(this),
-				el_data = d3.select(this.parentNode).data()[0]
-				el_data = $.extend( true, {}, el_data)
-				el_data.info = d
+		console.log(d);
 
-			el.select('line').transition().style("stroke-opacity", 1)
-			el.select('rect').transition().style("fill-opacity", 1)
-			el.select('rect').transition().style("stroke-width", 3)
+		var el = d3.select(this),
+			el_data = d3.select(this.parentNode).data()[0]
+			el_data = $.extend( true, {}, el_data)
+			el_data.info = d
 
-			var	templateData = templateId(d)
-				
-			var eventId = '#' + d.event_id,
-				templateSelector = '#' + templateData[0],
-				top = $(this).position().top - 50,
-				left = $(this).position().left >= 800 ? $(this).position().left - 400 : 
-														$(this).position().left + 50
+		var	templateData = templateId(d)
+			
+		var eventId = '#' + d.event_id,
+			templateSelector = '#' + templateData[0],
+			top = $(this).position().top - 50,
+			left = $(this).position().left >= 800 ? $(this).position().left - 400 : 
+													$(this).position().left + 50
 
-			if ( hoverable ){
 
-				el.classed(d.event_id, true)
-				  .classed('hovered', true)
-				
-				$('.event-popup').remove()
+		el.append('svg:line')
+			.attr('x1', 0)
+			.attr('x2', 0)
+			.attr('y1', 0)
+			.attr('y2', height - 260)
+			.style("stroke-opacity", 0)
+			.style("stroke", "orange")
 
-				var popup = new PopupView({
-					el : $('body'),
-					model : templateData[1],
-					tmpl : $(templateSelector),
-					top : top,
-					left : left
-				})
+		el.append('svg:text')
+			.text(function(d){
+				return formatEventDate(new Date(Number(d.time) * 1000))
+			})
+			.attr('x', function(d){
+				return -this.getComputedTextLength()/2
+			})
+			.attr('y', height - 235)
+			.attr('class', 'event-date')
+			.style('font-family', 'helvetica')
+			.style('font-size', '12px')
+			.style('fill', 'orange')
+			.style('fill-opacity', 1)
+	
+		el.select('line').transition().style("stroke-opacity", 1)
+		el.select('rect').classed('hovering', true);
 
-				console.log("the popup is", popup)
-				
-			}
-
-		})
-		.on('mouseout', function(d){
+		el.classed(d.event_id, true)
+		  .classed('hovered', true)
 		
-			var g = d3.select(this)
+		$('.event-popup').remove()
 
-			g.select('line').transition().style("stroke-opacity", 0)
-			g.select('rect').transition().style("stroke-width", 1)
-			g.classed('hovered', false)
-			removePopup ? $('.event-popup').remove() : null
-
+		var popup = new PopupView({
+			el : $('body'),
+			model : templateData[1],
+			tmpl : $(templateSelector),
+			top : top,
+			left : left
 		})
 
+	})
+	.on('mouseout', function(d){
+	
+		var el = d3.select(this)
 
-}
+		el.selectAll('line').transition().style("stroke-opacity", 0).remove()
+		el.selectAll('.event-date').transition().style("stroke-opacity", 0).remove()
+		el.select('rect').classed('hovering', false);
+		el.classed('hovered', false)
+		removePopup ? $('.event-popup').remove() : null
 
-function addContextSpeeches( data ){
+	})
+	.on('click', function(d){
+	
+		d3.select(this).classed('selected', true)
+		
+		// hoverable = false
+		removePopup = false
 
-	data = _.filter(data, function(datum){ return datum.events[0].event_type === "speech" })
-	data = _.map(data, function(ev){return ev.events[0]})
+		$('.event-popup').addClass('expanded')
+		$('.hidden-content').removeClass('hidden-content')
 
-	var event_ = context.selectAll(".context-speech")
-		.data(data)
-	  .enter().append('svg:g')
-	  	.attr('class', 'context-event context-speech')	
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",12)"; })	
-
-	 event_.append('rect')
-		.attr("width", 8)
-		.attr("height", 2)
-		.attr("class", "context-speech")
-		.style("fill", "orange")
-		.style("fill-opacity", .5)
-		.style("stroke", "orange")
-		.attr("transform", function(d) {
-	         return "rotate(-135)" 
-	     })
-
-	event_.on('mouseover', function(d){
-		console.log("the speech data is", d)
+		var expanded = new ExpandedView({
+			el : '#popup_content_container',
+			model : d
+		})
 	})
 
 }
 
-function addContextCosponsored ( data ){
+function addVotes( data ){
 
-	data = _.filter(data, function(datum){ return datum.events[0].event_type === "bill_cosponsorship" })
-	data = _.map(data, function(ev){return ev.events[0]})
+	data = _.filter(data, function(datum){ 
+			return datum.events[0].event_type === "vote" 
+		})
+	data = _.map(data, function(ev){ return ev.events[0]} )
 
-	var event_ = context.selectAll(".context-cosponsored")
+	var event_ = focus.selectAll(".vote")
 		.data(data)
 	  .enter().append('svg:g')
-	  	.attr('class', 'context-event context-cosponsored')	
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",0)"; })
+	  	.attr('class', 'event vote')	
+	  	.attr("transform", function(d) { 
+	  		return "translate(" + x(d.time * 1000) + ",270)"; 
+	  	})	
 
-	 event_.append('rect')
-		.attr("width", 8)
-		.attr("height", 2)
-		.style("fill", "red")
+	event_.append('rect')
+		.attr("width", 40)
+		.attr("height", 15)
+		.attr("class", "event speech")
+		.style("fill", "indigo")
 		.style("fill-opacity", .5)
-		.style("stroke", "red")
+		.style("stroke", "indigo")
 		.attr("transform", function(d) {
 	         return "rotate(-135)" 
-	     })
-		.on('mouseover', function(d){
-			console.log("the d is d", d)
+	    })
+
+	event_.on('mouseover', function(d){
+		console.log(d)
+
+		var el = d3.select(this)
+			, templateData = templateId(d, legislatorData.bio.id.bioguide)
+			, eventId = '#' + d.event_id
+			, templateSelector = '#' + templateData[0]
+			, top = $(this).position().top - 50
+			, left = $(this).position().left >= 800 ? $(this).position().left - 400 : 
+													$(this).position().left + 50;
+
+		el.append('svg:line')
+			.attr('x1', 0)
+			.attr('x2', 0)
+			.attr('y1', 0)
+			.attr('y2', height - 320)
+			.style("stroke-opacity", 0)
+			.style("stroke", "indigo")
+
+		el.append('svg:text')
+			.text(function(d){
+				return formatEventDate(new Date(Number(d.time) * 1000))
+			})
+			.attr('x', function(d){
+				return -this.getComputedTextLength()/2
+			})
+			.attr('y', height - 295)
+			.attr('class', 'event-date')
+			.style('font-family', 'helvetica')
+			.style('font-size', '12px')
+			.style('fill', 'indigo')
+			.style('fill-opacity', 1)				
+
+		el.select('rect').classed('hovering', true);
+		el.select('line').transition().style("stroke-opacity", 1)
+
+		el.classed(d.event_id, true)
+		  .classed('hovered', true)
+		
+		$('.event-popup').remove()
+
+		var popup = new PopupView({
+			el : $('body'),
+			model : templateData[1],
+			tmpl : $(templateSelector),
+			top : top,
+			left : left
 		})
+
+	})
+	.on('mouseout', function(d){
+
+		var el = d3.select(this)
+
+		el.selectAll('line').transition().style("stroke-opacity", 0).remove()
+		el.selectAll('.event-date').transition().style("stroke-opacity", 0).remove()
+		el.select('rect').classed('hovering', false);
+		el.classed('hovered', false)
+		removePopup ? $('.event-popup').remove() : null
+
+	})
+	.on('click', function(d){
+
+		d3.select(this).classed('selected', true);
+		removePopup = false;
+
+		$('.event-popup').addClass('expanded');
+		$('.hidden-content').removeClass('hidden-content'); // ?
+
+		var expanded = new ExpandedView({
+			el : '#popup_content_container',
+			model : d
+		});
+	});
+
 }
 
 function addCommittees(){
@@ -757,7 +843,7 @@ function addCommittees(){
 		.data(committeeAssignments)
 	  .enter().append('svg:g')
 	  	.attr('class', 'event')	
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + "," + 100 + ")"; })
+	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",100)"; })
 
 	event_.append('g').selectAll(".committee")
 		  .data(function(d){ return d.info })
@@ -770,10 +856,10 @@ function addCommittees(){
 			x2 = x(getTimestamp(d[8]))
 			return x2 - x1
 		})
-		.attr('y1', function(d,i){ return 200 - ( i * 30 )})
-		.attr('y2', function(d,i){ return 200 - ( i * 30 )})
+		.attr('y1', function(d,i){ return 240 - ( i * 15 )})
+		.attr('y2', function(d,i){ return 240 - ( i * 15 )})
 		.style("stroke-opacity", .5)
-		.style("stroke-width", 20)
+		.style("stroke-width", 10)
 		.style("stroke", "yellow")
 		.on('mouseover', function(d){
 
@@ -789,22 +875,18 @@ function addCommittees(){
 				left = mousePos[0] + 50,
 				top = mousePos[1]
 
-			if ( hoverable ){
+			el.classed(el_data.event_id, true)
+			  .classed('hovered', true)
+			
+			$('.event-popup').remove()
 
-				el.classed(el_data.event_id, true)
-				  .classed('hovered', true)
-				
-				$('.event-popup').remove()
-
-				var popup = new PopupView({
-					el : $('body'),
-					model : templateData[1],
-					tmpl : $(templateSelector),
-					top : top,
-					left : left
-				})
-				
-			}
+			var popup = new PopupView({
+				el : $('body'),
+				model : templateData[1],
+				tmpl : $(templateSelector),
+				top : top,
+				left : left
+			})
 
 		})
 		.on('mouseout', function(d){
@@ -817,13 +899,121 @@ function addCommittees(){
 
 }
 
+function addContextBills( data ){
+
+	data = _.filter(data, function(datum){ return datum.events[0].event_type === "sponsored_legislation" })
+	data = _.map(data, function(ev){return ev.events[0]})	
+
+	var event_ = context.selectAll(".context-sponsored")
+		.data(data)
+	  .enter().append('svg:g')
+	  	.attr('class', 'context-event shown')
+	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",15)"; })
+
+	 event_.append('rect')
+		.attr("width", 6)
+		.attr("height", 2)
+		.attr("class", "context-sponsored")
+		.style("fill", "steelblue")
+		.style("fill-opacity", .5)
+		.style("stroke", "none")
+		.attr("transform", function(d) {
+	         return "rotate(-135)" 
+	     })
+		.on('mouseover', function(d){
+			console.log("the d is d", d)
+		})
+
+} 
+
+function addContextCosponsored ( data ){
+
+	data = _.filter(data, function(datum){ return datum.events[0].event_type === "bill_cosponsorship" })
+	data = _.map(data, function(ev){return ev.events[0]})
+
+	var event_ = context.selectAll(".context-cosponsored")
+		.data(data)
+	  .enter().append('svg:g')
+	  	.attr('class', 'context-event context-cosponsored')	
+	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",25)"; })
+
+	 event_.append('rect')
+		.attr("width", 6)
+		.attr("height", 2)
+		.style("fill", "red")
+		.style("fill-opacity", .5)
+		.style("stroke", "none")
+		.attr("transform", function(d) {
+	         return "rotate(-135)" 
+	     })
+		.on('mouseover', function(d){
+			console.log("the d is d", d)
+		})
+}
+
+function addContextSpeeches( data ){
+
+	data = _.filter(data, function(datum){ return datum.events[0].event_type === "speech" })
+	data = _.map(data, function(ev){return ev.events[0]})
+
+	var event_ = context.selectAll(".context-speech")
+		.data(data)
+	  .enter().append('svg:g')
+	  	.attr('class', 'context-event context-speech')	
+	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",35)"; })	
+
+	 event_.append('rect')
+		.attr("width", 6)
+		.attr("height", 2)
+		.attr("class", "context-speech")
+		.style("fill", "orange")
+		.style("fill-opacity", .5)
+		.style("stroke", "none")
+		.attr("transform", function(d) {
+	         return "rotate(-135)" 
+	     })
+
+	event_.on('mouseover', function(d){
+		console.log("the speech data is", d)
+	})
+
+}
+
+function addContextVotes( data ){
+
+	data = _.filter(data, function(datum){ return datum.events[0].event_type === "vote" })
+	data = _.map(data, function(ev){return ev.events[0]})
+
+	var event_ = context.selectAll(".context-vote")
+		.data(data)
+	  .enter().append('svg:g')
+	  	.attr('class', 'context-event context-vote')	
+	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",42)"; })	
+
+	 event_.append('rect')
+		.attr("width", 6)
+		.attr("height", 2)
+		.attr("class", "context-speech")
+		.style("fill", "indigo")
+		.style("fill-opacity", .5)
+		.style("stroke", "none")
+		.attr("transform", function(d) {
+	         return "rotate(-135)" 
+	     })
+
+	event_.on('mouseover', function(d){
+		console.log("the speech data is", d)
+	})
+
+}
+
 function addContextCommittee(){
 
 	var event_ = context.selectAll(".context-committees")
 		.data(committeeAssignments)
 	  .enter().append('svg:g')
 	  	.attr('class', 'context-event')	
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",10)"; })
+	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",40)"; })
 
 	event_.append('g').selectAll(".committee")
 		.data(function(d){ return d.info })
@@ -843,141 +1033,74 @@ function addContextCommittee(){
 
 }
 
-// REFACTOR: NOT NEEDED ANYMORE 
-function addCircles( data ) {
-
-	var event_ = focus.selectAll(".event")
-		.data(data)
-	  .enter().append('svg:g')
-	  	.attr('class', 'event')	
-	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",75)"; })
-
-	// append the shape 
-	event_.append('g').selectAll("ev")
-		.data(function(d){
-			return d.events
-		})
-		.enter().append('circle')
-	  	.attr('cy', function(d, i){
-	  		var yVal = 460 -  ( ( (i + 1) * 20 ) + ( (831 * (1/data.length)) / 2 ) ) 
-	  		return yVal - 100	  		
-	  	})
-		.attr('class', function(d) { 
-			return d.event.split(" ")[0] + ' ' + 'focus-circle'
-		})
-		.attr('r', function(d){
-			var r = 600 * ( 1/data.length )
-			return r
-		})
-		.attr('cx', 0)
-		.style('stroke', function(d){ 
-			var color
-			color = getColor(d)
-			return color
-		})
-		.style('fill', function(d){ 
-			var color
-			color = getColor(d)
-			return color
-		})
-		.on('mouseover', function(d){
-			
-			if ( hoverable ){
-				var self = this
-				d3.select(this.parentNode.parentNode).select('.event-date').classed('shown', true)
-				d3.select(this).transition().attr('r', function(){
-					return d3.select(self).attr('r') * 2
-				})
-
-				var el = d3.select(this),
-					r = el.attr('r'),
-					top = $(this).position().top - 50,
-					left = $(this).position().left >= 800 ? $(this).position().left - 400 : 
-															$(this).position().left + 50
-
-				console.log("the position is", $(this).position())
-
-				el.classed(d.event_id, true)
-				  .classed('hovered', true)
-
-				var templateData = templateId(d)
-				console.log(d)
-				console.log("the template info is", templateData)
-
-				var eventId = '#' + d.event_id,
-					templateSelector = '#' + templateData[0]
-				
-				$('.event-popup').remove()
-
-				var popup = new PopupView({
-					el : $('body'),
-					model : templateData[1],
-					tmpl : $(templateSelector),
-					top : top,
-					left : left
-				})
-				
-			}
-
-		})
-		.on('mouseout', function(){
-
-			removePopup ? $('.event-popup').remove() : null
-			
-			d3.select(this.parentNode.parentNode)
-				.select('.event-date')
-				.classed('shown', false)				
-
-			d3.select(this).classed('hovered', false)				
-
-			if (!(d3.select(this).classed('selected'))){
-
-				d3.select(this).transition().attr('r', function(d){
-					var r = 600 * (1/data.length) 
-					return r
-				})
-			}
-
-		})
-		.on('click', function(d){
-			
-			d3.select(this).classed('selected', true)
-
-			hoverable = false
-			removePopup = false
-
-			$('.event-popup').addClass('expanded')
-			$('.hidden-content').removeClass('hidden-content')
-
-			var expanded = new ExpandedView({
-				el : '#popup_content_container',
-				model : d
-			})
-		})
-
+function searchString( d ){
+	var searchString = d.info.contributor_name
+	searchString += ' ' + d.info.contributor_occupation
+	searchString = $.trim(searchString.toLowerCase());
+	searchString = searchString.split(' ').join('+');
+	return 'https://www.google.com/search?q=' + searchString
 }
 
-// REFACTOR: CHANGE SWITCH TO OBJECT 
-function templateId (d){
-	var data 
+function imageString ( d ) {
+	return 'http://14ddv.com/wp-content/uploads/2012/05/person_placeholder-Copy.png'
+}
+
+function contributionInfo( d ) {
+	var contributions = _.pluck(context.selectAll('.recieved').data(), 'info')
+		, amounts
+		, sum = 0
+		, contribInfo = {};
+
+	amounts = _.filter(contributions, function(contrib){
+			if ( contrib.contributor_ext_id === d.info.contributor_ext_id ){
+				return Number(contrib.amount)
+			}
+		})
+
+	_.each(amounts, function(a){
+		sum += Number(a.amount)
+	})
+
+	contribInfo['totalContributed'] = numberWithCommas( sum );
+	contribInfo['totalContributions'] = amounts.length;
+
+	return contribInfo
+}
+
+function numberWithCommas( x ) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function toTitleCase( str ) {
+    return str.replace(/\w\S*/g, function(txt){
+    	return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+}
+
+// REFACTOR: this function shiouldn't be needed
+// data from event dom element should be sufficient 
+function templateId ( d, bioguide ){
+	var data
 	// console.log("incoming data is", d)
 	switch(d.event) {
 		case "sponsored legislation":
 			data = {
+				"date" : d.time,
 				"title" : d.info.title,
 				"thomas_link" : d.info.thomas_link,
 				"govtrack_link" : d.info.link,
 				"id" : d.event_id
 			}
-
 			return [ "sponsored_legislation", data ] 
 			break;
 
 		case "event/party":
 			return "red"
 			break;
+
 		case "bill cosponsorship":
 			data = {
+				"date" : d.time,
 				"title" : d.info.official_title,
 				"thomas_link" : d.info.thomas_link,
 				"govtrack_link" : d.info.link,
@@ -985,18 +1108,21 @@ function templateId (d){
 			}
 
 			return [ "cosponsored_legislation", data ]
-			break
+			break;
+
 		case "start congressional term":
 			return "green"
-			break
+			break;
+
 		case "joined committee":
 			data = {
-				"date" : new Date( Number(d.time) * 1000).toString('dddd,MMMM,yyyy'),
+				"date" : d.time,
 				"committee" : d.info[14],
 				"id" : d.event_id
 			}
 			return [ "joined_committee", data ]
-			break
+			break;
+
 		case "recieved campaign contribution":
 			var contributor_name
 			if ( d.info.contributor_type == "I" ) {
@@ -1006,13 +1132,14 @@ function templateId (d){
 			}
 
 			data = {
-				"date" : new Date( Number(d.time) * 1000).toString('dddd,MMMM,yyyy'),
+				"date" : d.time,
 				"contributor_name" : contributor_name,
 				"contributor_string" : d.info.contributor_name.replace(/ /g, ""),
 				"contributor_occupation" : d.info.contributor_occupation,
 				"contributor_city" : d.info.contributor_city,
 				"contributor_state" : d.info.contributor_state,
 				"conributor_zipcode" : d.info.contributor_zipcode,
+				"industry" : d.info.contributor_category_industry,
 				"cycle" : d.info.cycle,
 				"amount" : d.info.amount,
 				"id" : d.event_id
@@ -1021,14 +1148,24 @@ function templateId (d){
 			return [ "campaign_contribution", data ];
 			break
 		case "speech":
-			console.log("got this mother")
 			data = {
+				"date" : d.time,
 				"title" : d.info.title,
 				"date" : d.info.date,
 				"bills" : d.info.bills || [],
 				"id" : d.event_id
 			}
 			return ["speech", data]
+			break
+		case "vote":
+			
+			data = {
+				"date" : d.time,
+				"bill_title" : d.info.official_title,
+				"vote" : d.info.vote,
+				"id" : d.event_id
+			}
+			return["vote", data]
 			break
 	}
 }
@@ -1048,70 +1185,34 @@ function fixContributorName( name ){
 }
 
 function capitaliseFirstLetter(string){
-
     return string.charAt(0).toUpperCase() + string.slice(1);
-
 }
 
 function getTimestamp(str) {
-
 	var d = str.match(/\d+/g); // extract date parts
 	return +new Date(d[0], d[1] - 1, d[2], d[3], d[4], d[5]); // build Date object
-
 }
-
-// REFACTOR: SHOULD BE OBJECT
-function getColor(d){
-
-	switch(d.event) {
-		case "sponsored legislation":
-			return "yellow"
-			break;
-		case "event/party":
-			return "red"
-			break;
-		case "bill cosponsorship":
-			return "blue"
-			break
-		case "start congressional term":
-			return "green"
-			break
-		case "joined committee":
-			return "purple"
-			break
-		case "month of campaign contributions":
-			return "#333"
-			break
-	}
-}
-
 
 var options = {
-
 	filter_li : function(){
-
-		var source = $('#filter_template').html(),
-			template = Handlebars.compile( source )
-
+		var source = $('#filter_template').html()
+			, template = Handlebars.compile( source )
 		$('#options_content').html( template )
-
 	},
 
 	key_li : function(){
-
-		var source = $('#key_template').html(),
-			template = Handlebars.compile( source )
+		var source = $('#key_template').html()
+			, template = Handlebars.compile( source );
 
 		$('#options_content').html( template )
-
 	}
 }
 
 var addAttributeFilter = {
-
 	elected : function(){
 
 	},
+
 	committee : function() {
 
 	},
@@ -1127,12 +1228,9 @@ var addAttributeFilter = {
 			var option = '<option value="' + attr + '"">' + lowerUnderToUpperSpace( attr ) + '</option>';
 			$('.attribute-drop').append(option);
 		})
-
 	}, 
 
 	lobbying_contribution : function(){
-
-		
 
 	},
 
@@ -1147,7 +1245,6 @@ var addAttributeFilter = {
 			var option = '<option value="' + attr + '"">' + lowerUnderToUpperSpace( attr ) + '</option>';
 			$('.attribute-drop').append(option);
 		})
-
 	},
 
 	cosponsored_legislation : function(){
@@ -1161,9 +1258,21 @@ var addAttributeFilter = {
 			var option = '<option value="' + attr + '"">' + lowerUnderToUpperSpace( attr ) + '</option>';
 			$('.attribute-drop').append(option);
 		})
-
 	}
 
+}
+
+function compare(a,b) {
+  if (a.sectorName < b.sectorName){
+  	 return -1;
+  }
+  else if (a.sectorName > b.sectorName){
+  	return 1;
+  }
+  else{
+  	return 0;	
+  }
+  
 }
 
 function lowerUnderToUpperSpace( string ){
@@ -1185,3 +1294,18 @@ Handlebars.registerHelper('formatDate', function(v){
     return number
 })
 
+Handlebars.registerHelper('numberWithCommas', function(v){
+	v = parseInt(v)
+	return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+})
+
+Handlebars.registerHelper('stringToTitleCase', function(str){
+	 return str.replace(/\w\S*/g, function(txt){
+    	return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+})
+
+Handlebars.registerHelper('timestampToDateString', function(ts){
+	var formatEventDate = d3.time.format("%B %d, %Y");
+	return formatEventDate(new Date(Number(ts) * 1000))
+})
