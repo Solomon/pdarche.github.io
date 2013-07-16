@@ -112,9 +112,7 @@ function update( legisJson, view, funcName, headingModel, total ){
 	console.log('the total is', total)
 	d3.json(legisJson)
 	.on('progress', function(){
-	  console.log('total size is', d3.event.loaded)
       var i = d3.interpolate(progress, d3.event.loaded / total);
-      console.log('total is', total)
       d3.transition().tween('progress', function() {
         return function(t) {
           progress = i(t);
