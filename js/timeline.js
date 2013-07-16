@@ -119,8 +119,7 @@ function update( legisJson, view, funcName, headingModel, total ){
         return function(t) {
           progress = i(t);
           foreground.attr("d", arc.endAngle(twoPi * progress));
-          text.text(formatPercent(progress));
-          console.log('i should be fucking firing')
+          text.text(formatPercent(progress));     
         };
       });
 	}).get(function(err, data){
