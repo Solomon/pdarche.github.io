@@ -79,101 +79,6 @@
 
 function update( legisJson, view, funcName, headingModel, total ){
 
-	// d3.json( legisJson, function(data){
-
-	// 	window.legislatorData = data
-	// 	window.contribs = _.filter(data.data, function(datum){ return datum.events[0].event_type === "recieved_campaign_contributions" })
-	// 		   contribs = _.map(contribs, function(ev){return ev.events[0]})
-	// 	window.committeeAssignments = _.filter(data.data, function(datum){ return datum.events[0].event_type === "joined_committee" })
-	// 		   committeeAssignments = _.map(committeeAssignments, function(ev){ return ev.events[0] })
-
-	// 	var crpCodes = legislatorData.crp_catcodes
-	// 		, catInfo = { "crpInfo" : [] }
-	// 		, sectors;
-		
-	// 	for ( key in crpCodes ) {
-	// 		catInfo.crpInfo.push({
-	// 			"industryCode" : key,
-	// 			"industryName" : crpCodes[key][0],
-	// 			"sectorCode" : key.slice(0,2),
-	// 			"sectorCoding" : crpCodes[key][2],
-	// 			"sectorName" : crpCodes[key][1]
-	// 		})
-	// 	}
-
-	// 	sectors = _.uniq(_.pluck(catInfo.crpInfo, "sectorName"))
-	// 	sectors = _.map(sectors, function(sector){ 
-	// 		return _.findWhere(catInfo.crpInfo, {sectorName: sector});
-	// 	})
-	// 	catInfo.crpInfo = sectors.sort(compare)
-
-	// 	var legis_data = {
-	// 		"name" : data.bio.name.official_full,
-	// 		"osid" : data.bio.id.opensecrets,
-	// 		"type" : capitaliseFirstLetter( data.bio.terms[data.bio.terms.length-1].type ),
-	// 		"party" : data.bio.terms[data.bio.terms.length-1].party,
-	// 		"district" : data.bio.terms[data.bio.terms.length-1].district,
-	// 		"state" : data.bio.terms[data.bio.terms.length-1].state,
-	// 		"eventTypes" : [ 
-	// 			"Sponsored Legislation", "Cosponsored Legislation", 
-	// 			"Event or Party", "Joined Committee", "Elected to Office" 
-	// 		]
-	// 	}
-
-	// 	// set the data in the models
-	// 	headingModel.set(legis_data)
-	// 	filterModel.set(catInfo)
-	// 	view[funcName]()
-
-	// 	// sort the objects by timestamp
-	// 	var sorted = data.data.sort(compare).reverse()
-	// 		values = sorted
-
-	// 	x.domain(d3.extent(sorted.map(function(d) { return d.time * 1000; })));	 
-	// 	x2.domain(x.domain());
-
-	// 	focus.append("g")
-	// 	  .attr("class", "x axis")
-	// 	  .attr("transform", "translate(0," + ( height - 50 ) + ")")	  
-	// 	  .call(xAxis);
-
-	// 	context.append("g")
-	// 	  .attr("class", "x axis")
-	// 	  .attr("transform", "translate(0," + height2 + ")")
-	// 	  .call(xAxis2);
-
-	// 	context.append("g")
-	// 	  .attr("class", "x brush")
-	// 	  .call(brush)
-	// 	.selectAll("rect")
-	// 	  .attr("y", -6)
-	// 	  .attr("height", height2 + 7);
-
-	// 	// get the min and timestamp values 
-	// 	var minTime = sorted[0].time,
-	// 		maxTime = sorted[sorted.length - 1].time
-
-	// 	// create dates from the min and max timestamps
-	// 	var startDate = new Date(minTime * 1000),
-	// 		endDate = new Date(maxTime * 1000)
-
-	// 	// select the events elements, append legis event data
-	// 	// and translate element based on time
-	// 	var event_ = focus.selectAll(".event")
-	// 		.data(sorted)
-	// 	  .enter().append('svg:g')
-	// 	  	.attr('class', 'event')	
-	// 	  	.attr("transform", function(d) { return "translate(" + x(d.time * 1000) + ",75)"; })
-
-	// 	addContextContribution( values )
-	// 	addContextBills( values )
-	// 	addContextCosponsored( values )
-	// 	addContextSpeeches( values )
-	// 	addContextVotes( values )
-	// 	addContextCommittee()
-
-	// })
-
 	var w = 100,
 	    h = 100,
 	    twoPi = 2 * Math.PI,
@@ -209,6 +114,7 @@ function update( legisJson, view, funcName, headingModel, total ){
 	.on('progress', function(){
 	  console.log('total size is', d3.event.loaded)
       var i = d3.interpolate(progress, d3.event.loaded / total);
+      console.log('total is', total)
       d3.transition().tween('progress', function() {
         return function(t) {
           progress = i(t);

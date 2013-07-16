@@ -141,8 +141,11 @@ var HeadingView = Backbone.View.extend({
 	fileSizes : {
 		"data/cathy_mcmorris_rodgers.json" : 22062533,
 		"data/john_a_boehner.json" : 42810525,
+		"data/eric_cantor.json" : 40887172,
+		"data/james_lankford.json" : 40887172,
 		"data/john_cornyn.json" : 18321982,
 		"data/nancy_pelosi.json" : 40887172,
+		"data/james_e_clyburn.json" : 40887172,
 		"data/kevin_mccarthy.json" : 21382668,
 		"data/steny_h_hoyer.json" : 58230870
 	},
